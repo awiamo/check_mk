@@ -1,0 +1,51 @@
+#!/usr/bin/python
+# smsapiPL
+# Notification via SMS using smsapi.pl
+# SMSAPI Documentation: https://www.smsapi.pl/biblioteki
+# Python-LIB: https://github.com/smsapi/smsapi-python-client
+
+import os, sys, urllib
+from smsapi.client import SmsAPI
+from smsapi.responses import ApiError
+#import pprint
+#pprint.pprint(os.environ.__dict__)
+
+__author__ = 'awiamo'
+
+api = SmsAPI()
+api.auth_token = os.environ['NOTIFY_PARAMETER_SMSAPIPL_KEY']
+
+if not os.environ.has_key('NOTIFY_CONTACTPAGER'):
+    sys.stderr.write('Error: No contact pager / telephone number for the contact!\n')
+    sys.exit(1)
+
+if not os.environ.has_key('NOTIFY_PARAMETER_SMSAPIPL_KEY'):
+    sys.stderr.write('Error: No APIKEY!\n')
+    sys.exit(1)
+
+max_len = 160
+message = os.environ['NOTIFY_HOSTNAME'] + " "
+
+if os.environ['NOTIFY_WHAT'] == 'SERVICE':
+    message += os.environ['NOTIFY_SERVICESTATE'][:2] + " "
+    avail_len = max_len - len(message)
+    message += os.environ['NOTIFY_SERVICEDESC'][:avail_len] + " "
+    avail_len = max_len - len(message)
+    message += os.environ['NOTIFY_SERVICEOUTPUT'][:avail_len]
+else:
+    message += "is " + os.environ['NOTIFY_HOSTSTATE']
+
+try:
+        api.service('sms').action('send')
+        api.set_content(message)
+        api.set_to(os.environ['NOTIFY_CONTACTPAGER'])
+        api.set_from(os.environ['NOTIFY_PARAMETER_SMSAPIPL_SMSTYPE'])
+        result = api.execute()
+
+        for r in result:
+                print r.id, r.points, r.status
+
+except ApiError, e:
+        print '%s - %s' % (e.code, e.message)
+        sys.exit(1)
+
